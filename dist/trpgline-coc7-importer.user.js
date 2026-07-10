@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TRPGLine COC7 Excel Importer
 // @namespace    https://github.com/Knight3050/trpg-sheet-importer
-// @version      0.1.12
+// @version      0.1.13
 // @description  Import the fixed COC7 Excel character sheet into TRPGLine Link sheets.
 // @author       Knight3050
 // @match        *://trpgline.com/*
@@ -246,6 +246,38 @@
       margin: 8px 0;
       color: #475569;
     }
+    #trpgline-coc7-importer .supported-tabs {
+      margin: 8px 0;
+      padding: 8px;
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 6px;
+    }
+    #trpgline-coc7-importer .supported-tabs strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #134e4a;
+    }
+    #trpgline-coc7-importer .supported-tabs ul {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 5px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    #trpgline-coc7-importer .supported-tabs li {
+      padding: 4px 6px;
+      background: #ffffff;
+      border: 1px solid #ccfbf1;
+      border-radius: 4px;
+      color: #115e59;
+    }
+    #trpgline-coc7-importer .supported-tabs small {
+      display: block;
+      margin-top: 6px;
+      color: #475569;
+    }
     #trpgline-coc7-importer .output {
       max-height: 220px;
       overflow: auto;
@@ -318,7 +350,19 @@
           </label>
           <button type="button" data-import disabled>导入当前页</button>
         </div>
-        <div class="summary" data-summary>请选择 cocv7.xlsx。基础属性和技能表需要切到对应页面分别导入。</div>
+        <div class="supported-tabs">
+          <strong>可自动赋值的选项卡</strong>
+          <ul>
+            <li>基本属性（资料、数值）</li>
+            <li>技能表（技能值）</li>
+            <li>战斗（武器）</li>
+            <li>身世背景</li>
+            <li>物品</li>
+            <li>物件資訊（公开资讯）</li>
+          </ul>
+          <small>请切换到对应选项卡后，逐页点击“导入当前页”。</small>
+        </div>
+        <div class="summary" data-summary>请选择 cocv7.xlsx。</div>
         <div class="output" data-output></div>
       </main>
     `;
