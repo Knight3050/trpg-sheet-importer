@@ -7,6 +7,7 @@ import {
   findWeaponRows,
   ensureWeaponRows,
   findInfoEditor,
+  getActivePropertyTab,
   findParagraphRow,
   normalizeSkillName,
   setAttributeValue,
@@ -14,6 +15,16 @@ import {
   setParagraphValue,
   setWeaponRow
 } from "../src/trpglineAdapter.js";
+
+test("detects supported active property tabs", () => {
+  assert.equal(getActivePropertyTab(createTabRoot("基本属性")), "basic");
+  assert.equal(getActivePropertyTab(createTabRoot("技能表")), "skills");
+  assert.equal(getActivePropertyTab(createTabRoot("戰鬥")), "battle");
+  assert.equal(getActivePropertyTab(createTabRoot("身世背景")), "background");
+  assert.equal(getActivePropertyTab(createTabRoot("物品")), "items");
+  assert.equal(getActivePropertyTab(createTabRoot("其他")), "");
+  assert.equal(getActivePropertyTab(createTabRoot("", { info: true })), "info");
+});
 
 test("normalizes simplified, traditional, and English skill names to one key", () => {
   assert.equal(normalizeSkillName("估价"), "appraise");
@@ -194,6 +205,22 @@ function createRoot(rows) {
   return {
     querySelectorAll(selector) {
       return selector === ".character-attribute" || selector === ".character-attribute--row" ? rows : [];
+    }
+  };
+}
+
+function createTabRoot(label, options = {}) {
+  const activeButton = {
+    textContent: label,
+    classList: { contains: (name) => name === "btn-primary" }
+  };
+
+  return {
+    querySelector(selector) {
+      return selector === ".sheet-content--info" && options.info ? {} : null;
+    },
+    querySelectorAll(selector) {
+      return selector.includes(".sheet-content--property") ? [activeButton] : [];
     }
   };
 }

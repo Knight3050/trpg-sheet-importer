@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TRPGLine COC7 Excel Importer
 // @namespace    https://github.com/Knight3050/trpg-sheet-importer
-// @version      0.1.13
+// @version      0.1.14
 // @description  Import the fixed COC7 Excel character sheet into TRPGLine Link sheets.
 // @author       Knight3050
 // @match        *://trpgline.com/*
@@ -61,6 +61,15 @@
 
     const INFO_CELL_MAP = {
         public: 'W79',
+    };
+
+    const SUPPORTED_TABS = {
+        basic: '基本属性',
+        skills: '技能表',
+        battle: '战斗',
+        background: '身世背景',
+        items: '物品',
+        info: '物件資訊',
     };
 
     const SKILL_TABLE_LAYOUTS = [
@@ -273,10 +282,24 @@
       border-radius: 4px;
       color: #115e59;
     }
+    #trpgline-coc7-importer .supported-tabs li.is-active {
+      background: #0f766e;
+      border-color: #0f766e;
+      color: #ffffff;
+      font-weight: 700;
+    }
     #trpgline-coc7-importer .supported-tabs small {
       display: block;
       margin-top: 6px;
       color: #475569;
+    }
+    #trpgline-coc7-importer .tab-status {
+      margin-top: 6px;
+      color: #0f766e;
+      font-weight: 600;
+    }
+    #trpgline-coc7-importer .tab-status.is-unsupported {
+      color: #b91c1c;
     }
     #trpgline-coc7-importer .output {
       max-height: 220px;
@@ -309,6 +332,8 @@
   `;
 
     let parsedCharacter = null;
+    let isImporting = false;
+    let tabStatusTimer = null;
 
     initLauncher();
     initPanel();
@@ -353,13 +378,14 @@
         <div class="supported-tabs">
           <strong>可自动赋值的选项卡</strong>
           <ul>
-            <li>基本属性（资料、数值）</li>
-            <li>技能表（技能值）</li>
-            <li>战斗（武器）</li>
-            <li>身世背景</li>
-            <li>物品</li>
-            <li>物件資訊（公开资讯）</li>
+            <li data-tab="basic">基本属性（资料、数值）</li>
+            <li data-tab="skills">技能表（技能值）</li>
+            <li data-tab="battle">战斗（武器）</li>
+            <li data-tab="background">身世背景</li>
+            <li data-tab="items">物品</li>
+            <li data-tab="info">物件資訊（公开资讯）</li>
           </ul>
+          <div class="tab-status is-unsupported" data-tab-status>正在识别当前选项卡...</div>
           <small>请切换到对应选项卡后，逐页点击“导入当前页”。</small>
         </div>
         <div class="summary" data-summary>请选择 cocv7.xlsx。</div>
@@ -369,9 +395,43 @@
 
         document.body.appendChild(panel);
 
-        panel.querySelector('[data-close]').addEventListener('click', () => panel.remove());
+        panel.querySelector('[data-close]').addEventListener('click', () => {
+            clearInterval(tabStatusTimer);
+            tabStatusTimer = null;
+            panel.remove();
+        });
         panel.querySelector('[data-file]').addEventListener('change', handleFile);
         panel.querySelector('[data-import]').addEventListener('click', handleImport);
+        updateTabUi();
+        clearInterval(tabStatusTimer);
+        tabStatusTimer = setInterval(updateTabUi, 500);
+    }
+
+    function updateTabUi() {
+        const panel = document.querySelector('#trpgline-coc7-importer');
+
+        if (!panel) {
+            return;
+        }
+
+        const activeTab = getActivePropertyTab(document);
+        const status = panel.querySelector('[data-tab-status]');
+        const importButton = panel.querySelector('[data-import]');
+
+        for (const item of panel.querySelectorAll('[data-tab]')) {
+            item.classList.toggle('is-active', item.dataset.tab === activeTab);
+        }
+
+        if (activeTab) {
+            status.textContent = `当前选项卡：${SUPPORTED_TABS[activeTab]}`;
+            status.classList.remove('is-unsupported');
+        } else {
+            status.textContent = '当前页面不支持自动赋值，请切换到上列选项卡。';
+            status.classList.add('is-unsupported');
+        }
+
+        importButton.textContent = isImporting ? '导入中...' : '导入当前页';
+        importButton.disabled = isImporting || !parsedCharacter || !activeTab;
     }
 
     async function handleFile(event) {
@@ -379,7 +439,6 @@
         const panel = document.querySelector('#trpgline-coc7-importer');
         const summary = panel.querySelector('[data-summary]');
         const output = panel.querySelector('[data-output]');
-        const importButton = panel.querySelector('[data-import]');
 
         if (!file) {
             return;
@@ -395,19 +454,19 @@
             }
 
             parsedCharacter = mapCoc7Worksheet(sheetToCells(sheet));
-            importButton.disabled = false;
             summary.textContent = `已读取：属性 ${Object.keys(parsedCharacter.attributes).length} 个，衍生值 ${Object.keys(parsedCharacter.derived).length} 个，技能 ${Object.keys(parsedCharacter.skills).length} 个，武器 ${parsedCharacter.weapons.length} 把，身世背景 ${Object.keys(parsedCharacter.background).length} 项，物品 ${Object.keys(parsedCharacter.items).length} 项，物件資訊 ${Object.keys(parsedCharacter.info).length} 项。`;
             output.textContent = renderPreview(parsedCharacter);
+            updateTabUi();
         } catch (error) {
             parsedCharacter = null;
-            importButton.disabled = true;
             summary.innerHTML = `<span class="danger">读取失败：${escapeHtml(error.message)}</span>`;
             output.textContent = '';
+            updateTabUi();
         }
     }
 
     async function handleImport() {
-        if (!parsedCharacter) {
+        if (!parsedCharacter || isImporting) {
             return;
         }
 
@@ -430,34 +489,38 @@
         const infoEntries = [['公開資訊', parsedCharacter.info.public]];
         const activeTab = getActivePropertyTab(document);
 
+        if (!activeTab) {
+            updateTabUi();
+            return;
+        }
+
+        isImporting = true;
+        updateTabUi();
         summary.textContent = '正在导入当前页面能找到的字段...';
 
-        if (!activeTab || activeTab === 'basic') {
-            await importEntries('basic', basicEntries, report);
-        }
+        try {
+            if (activeTab === 'basic') {
+                await importEntries('basic', basicEntries, report);
+            } else if (activeTab === 'skills') {
+                await importEntries('skills', skillEntries, report);
+            } else if (activeTab === 'battle') {
+                await importWeapons(weaponEntries, report);
+            } else if (activeTab === 'background') {
+                await importParagraphEntries('background', backgroundEntries, report);
+            } else if (activeTab === 'items') {
+                await importParagraphEntries('items', itemEntries, report);
+            } else if (activeTab === 'info') {
+                await importInfoEntries(infoEntries, report);
+            }
 
-        if (!activeTab || activeTab === 'skills') {
-            await importEntries('skills', skillEntries, report);
+            summary.textContent = `“${SUPPORTED_TABS[activeTab]}”导入完成，请检查页面后手动保存。`;
+            output.innerHTML = renderImportReport(report);
+        } catch (error) {
+            summary.innerHTML = `<span class="danger">导入失败：${escapeHtml(error.message)}</span>`;
+        } finally {
+            isImporting = false;
+            updateTabUi();
         }
-
-        if (!activeTab || activeTab === 'battle') {
-            await importWeapons(weaponEntries, report);
-        }
-
-        if (!activeTab || activeTab === 'background') {
-            await importParagraphEntries('background', backgroundEntries, report);
-        }
-
-        if (!activeTab || activeTab === 'items') {
-            await importParagraphEntries('items', itemEntries, report);
-        }
-
-        if (!activeTab || activeTab === 'info') {
-            await importInfoEntries(infoEntries, report);
-        }
-
-        summary.textContent = '导入完成，请检查页面后手动保存。';
-        output.innerHTML = renderImportReport(report);
     }
 
     async function importEntries(group, entries, report) {

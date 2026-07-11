@@ -196,6 +196,39 @@ export function findInfoEditor(root) {
   return root.querySelector('.sheet-content--info pre[contenteditable="true"]');
 }
 
+export function getActivePropertyTab(root) {
+  if (root.querySelector(".sheet-content--info")) {
+    return "info";
+  }
+
+  const activeButton = [
+    ...root.querySelectorAll(".sheet-content--property .btn-primary, .sheet-content--property button")
+  ].find((button) => button.classList?.contains("btn-primary"));
+  const text = normalizeText(activeButton?.textContent);
+
+  if (["基本属性", "基本屬性"].some((label) => text.includes(normalizeText(label)))) {
+    return "basic";
+  }
+
+  if (text.includes(normalizeText("技能表"))) {
+    return "skills";
+  }
+
+  if (["战斗", "戰鬥"].some((label) => text.includes(normalizeText(label)))) {
+    return "battle";
+  }
+
+  if (text.includes(normalizeText("身世背景"))) {
+    return "background";
+  }
+
+  if (text.includes(normalizeText("物品"))) {
+    return "items";
+  }
+
+  return "";
+}
+
 export function setInfoValue(editor, value) {
   if (!editor) {
     return { ok: false, reason: "未找到公开信息输入框" };
