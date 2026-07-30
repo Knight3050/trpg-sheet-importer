@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TRPGLine COC7 Excel Importer
 // @namespace    https://github.com/Knight3050/trpg-sheet-importer
-// @version      0.1.14
+// @version      0.1.15
 // @description  Import the fixed COC7 Excel character sheet into TRPGLine Link sheets.
 // @author       Knight3050
 // @match        *://trpgline.com/*
@@ -230,7 +230,8 @@
       padding: 10px;
     }
     #trpgline-coc7-importer button,
-    #trpgline-coc7-importer label {
+    #trpgline-coc7-importer label,
+    #trpgline-coc7-importer .template-download {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -248,8 +249,12 @@
     }
     #trpgline-coc7-importer .actions {
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       margin-bottom: 8px;
+    }
+    #trpgline-coc7-importer .template-download {
+      text-decoration: none;
     }
     #trpgline-coc7-importer .summary {
       margin: 8px 0;
@@ -373,6 +378,7 @@
             选择 Excel
             <input type="file" accept=".xlsx,.xls" data-file>
           </label>
+          <a class="template-download" href="https://raw.githubusercontent.com/Knight3050/trpg-sheet-importer/main/samples/coc7%E4%BA%BA%E7%89%A9%E5%8D%A1%E6%A8%A1%E7%89%88.xlsx" download="coc7人物卡模版.xlsx" target="_blank" rel="noopener">下载空白模板</a>
           <button type="button" data-import disabled>导入当前页</button>
         </div>
         <div class="supported-tabs">
