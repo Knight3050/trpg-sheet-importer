@@ -122,4 +122,4 @@ git push
 
 ## License
 
-未指定许可证。公开仓库维护时，建议后续补充明确的开源许可证。
+本项目采用 [MIT License](LICENSE)。
